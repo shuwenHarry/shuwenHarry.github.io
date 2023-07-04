@@ -1,0 +1,357 @@
+---
+title : Cat-vs-Dog
+permalink: /cat-vs-dog/
+---
+
+<!DOCTYPE html>
+<html lang="en">
+{% include head.html %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat vs Dog</title>
+    <script src="https://cdn.staticfile.org/vue/2.6.9/vue.min.js"></script>
+    <script src="https://cdn.staticfile.org/element-ui/2.15.7/index.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue-resource/1.5.3/vue-resource.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/element-ui/2.15.7/theme-chalk/index.min.css"></link>
+</head>
+<body style="background: white;">
+{% include navbar.html %}
+<div id="main">
+    <div id="app" class="app">
+        <div style="font-size:18px; margin-left: 10px;">
+            <span >Please select an image</span>
+            <span v-if="service_status === 0">(Backend status: on)</span>
+            <span v-else-if="service_status === 1">(Backend status: off)</span>
+            <span v-else>(Backend is starting ...)</span>
+        </div>
+        <div class="img-selector">
+            <button class="available-button select-button" @click="loadImage(url)" v-for="url in default_image">
+                <el-image class="available-img" :src="url" lazy>
+                    <div slot="error" class="image-slot">
+                        <i class="el-icon-picture-outline"></i>
+                    </div>
+                </el-image>
+            </button>
+            <el-button class="available-img available-button" @click="dialog_visible = true">
+                <i class="el-icon-plus" style="font-size: 3em;"></i>
+            </el-button>
+        </div>
+        <div style="text-align: center;" v-loading="loading">
+            <img v-if="current_img" id="main-img" class="main-img" :src="current_img" @load="onImageLoad"
+                 @error="onImageLoadError" crossOrigin="anonymous"/>
+            <div v-if="!current_img" style="height: 100px"></div>
+        </div>
+        <div class="block">
+            <span class="tag" :style="{color: value < 50?'#1989FA':'black'}">Cat</span>
+            <el-slider
+                    class="slider"
+                    v-model="value"
+                    :marks="marks">
+            </el-slider>
+            <span class="tag" :style="{color: value > 50?'#1989FA':'black'}">Dog</span>
+        </div>
+        <div style="width: 100%;margin: 20px 0 20vh 0;text-align: center;">
+            <span style="font-size: 18px;">The Probability of Being "Dog"</span>
+        </div>
+
+        <el-dialog title="Your Image" :visible.sync="dialog_visible">
+            <el-tabs v-model="tab_active_name" @tab-click="tab_handle_click">
+               <el-tab-pane label="Online" name="online">
+                   <el-input
+                           placeholder="Image URL"
+                           v-model="url_link"
+                           clearable>
+                   </el-input>
+                   <div style="margin: 20px 0 34px 0;display: flex;flex-direction: column;align-items: start;">
+                       <el-link icon="el-icon-search" href="https://www.bing.com/images/search?q=cat" target="_blank">Bing Images: Cat</el-link>
+                       <el-link icon="el-icon-search" href="https://www.bing.com/images/search?q=dog" target="_blank">Bing Images: Dog</el-link>
+                   </div>
+               </el-tab-pane>
+               <el-tab-pane label="Local" name="local">
+                  <div style="display: flex; flex-direction: column;">
+                      <el-button icon="el-icon-picture-outline" @click="select_local_image()">Select an Image from Your Computer</el-button>
+                      <input ref="filElem" type="file" class="hidden" accept="image/*" @change="get_file">
+                      <el-image class="available-img" :src="local_url_link" style="margin-top: 10px; align-self: center;">
+                          <div slot="error" class="image-slot">
+                              <i class="el-icon-picture-outline"></i>
+                          </div>
+                      </el-image>
+                  </div>
+               </el-tab-pane>
+           </el-tabs>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialog_visible = false">Cancel</el-button>
+                <el-button :disabled="!((tab_active_name==='online' && url_link) || (tab_active_name==='local' && local_url_link))"
+                           type="primary"
+                           @click="select_custom_image_done()">OK</el-button>
+            </span>
+        </el-dialog>
+    </div>
+</div>
+{% include footer.html %}
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            tab_active_name: 'online',
+            dialog_visible: false,
+            loading: false,
+            default_image: [
+                'https://weai.aishuwen.com/cat_vs_dog/cat.4005.jpg',
+                'https://weai.aishuwen.com/cat_vs_dog/cat.4007.jpg',
+                'https://weai.aishuwen.com/cat_vs_dog/cat.4003.jpg',
+                'https://weai.aishuwen.com/cat_vs_dog/cat.4028.jpg',
+                'https://weai.aishuwen.com/cat_vs_dog/dog.4001.jpg',
+                'https://weai.aishuwen.com/cat_vs_dog/dog.4014.jpg',
+                'https://weai.aishuwen.com/cat_vs_dog/dog.4438.jpg',
+                'https://weai.aishuwen.com/cat_vs_dog/dog.4004.jpg'],
+            //backend_url: 'http://127.0.0.1:9000/',
+            backend_url: 'https://service-475pvvbc-1302242949.gz.apigw.tencentcs.com/release/',
+            current_img: '',
+            value: 50,
+            marks: {
+                0: '0',
+                10: '0.1',
+                20: '0.2',
+                30: '0.3',
+                40: '0.4',
+                50: {
+                    style: {
+                        color: '#1989FA'
+                    },
+                    label: '0.5'
+                },
+                60: '0.6',
+                70: '0.7',
+                80: '0.8',
+                90: '0.9',
+                100: '1'
+            },
+            url_link: null, // online url link
+            local_url_link: '', // local url link (base64)
+            main_img: null, // #main-img dom
+            request: null,
+            service_status: 2, // 0: on; 1: off; others: wait start
+        },
+        mounted() {
+            this.main_img = document.querySelector('#main-img');
+            setTimeout(() => {
+                (async () => {
+                    await this.init_service()
+                })()
+            }, 0);
+        },
+        methods: {
+            isMobile() {
+                return navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i);
+            },
+            async init_service() {
+                let url = this.backend_url;
+                url += url.substr(url.length - 1, 1) === '/' ? 'healthy' : '/healthy'
+                while (this.service_status !== 0) {
+                    try {
+                        let res = await this.$http.get(url, {
+                            timeout: 20000,
+                        })
+                        res = res.body;
+                        this.service_status = res['status']
+                        console.log("service status: ", this.service_status)
+                        break;
+                    } catch (e) {
+                        console.log(e)
+                        this.service_status = 2;// timeout, service is starting
+                    }
+                    await this.sleep(1000);
+                }
+            },
+            getBase64Image(img) {
+                let canvas = document.createElement("canvas");
+                let size = 128;
+                canvas.width = size;
+                canvas.height = size;
+                let ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, size, size);
+                return canvas.toDataURL("image/png")
+            },
+            onImageLoad() {
+                console.log("image loaded");
+                this.main_img = document.querySelector('#main-img');
+                let base64 = this.getBase64Image(this.main_img);
+                if (this.request) {
+                    clearTimeout(this.request);
+                }
+                this.request = setTimeout(() => {
+                    (async () => {
+                        await this.predict(base64)
+                    })()
+                }, 0);
+            },
+            onImageLoadError() {
+                console.log("image error");
+                this.loading = false;
+                this.$message.error('Please provide a valid image URL');
+                this.current_img = null;
+            },
+            async loadImage(url = this.default_image[0]) {
+                if (this.service_status !== 0){
+                    this.$message.error("Backend is starting ...");
+                    return
+                }
+                if(this.current_img === url) {
+                  return
+                }
+                this.loading = true;
+                this.value = 50;
+                this.current_img = url;
+            },
+            sleep(time) {
+                return new Promise((resolve) => setTimeout(resolve, time))
+            },
+            async predict(base64) {
+                // await this.sleep(2000);
+                try {
+                    let data = {
+                        'image': base64
+                    }
+                    let res = await this.$http.post(this.backend_url, data, {
+                        timeout: 0
+                    })
+                    res = res.body
+                    console.log(res)
+                    if (res.status === 0) {
+                        // success
+                        this.value = parseFloat(res.msg) * 100;
+                    } else {
+                        // error
+                        this.$message.error(res.msg);
+                    }
+                } catch (e) {
+                    console.log('loadImage', e)
+                    this.$message.error('Backend busy. Please try again.');
+                } finally {
+                    this.loading = false;
+                }
+            },
+            tab_handle_click(tab, event) {
+
+            },
+            select_local_image() {
+                this.$refs.filElem.dispatchEvent(new MouseEvent('click'))
+            },
+            get_file(event) {
+                if (event.target.files.length == 0) return
+                let file = event.target.files[0]
+                let type = file.type
+                let size = file.size
+                reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = e => {
+                  this.local_url_link = e.target.result;
+                }
+            },
+            async select_custom_image_done() {
+                this.dialog_visible = false;
+                if(this.tab_active_name === 'online'){
+                    this.loadImage(this.url_link)
+                } else if(this.tab_active_name === 'local'){
+                    this.loadImage(this.local_url_link)
+                }
+            }
+        }
+    })
+</script>
+<style lang="scss">
+    .available-button {
+        padding: 0;
+        margin: 10px;
+        height: 80px;
+        width: 80px;
+    }
+
+    .select-button {
+        border: 0;
+    }
+
+    .available-img {
+        width: 80px;
+        height: 80px;
+    }
+
+    .available-img img {
+        padding: 0;
+    }
+
+    .main-img {
+        height: calc(80vh - 450px);
+        margin: 5vh 10px 5vh 10px;
+    }
+
+    .block {
+        display: flex;
+    }
+
+    .block .slider {
+        flex-grow: 4;
+    }
+
+    .block .tag {
+        flex-grow: 1;
+        text-align: center;
+        font-size: xxx-large;
+        font-size: -webkit-xxx-large;
+    }
+
+    .slider {
+        pointer-events: none;
+    }
+
+    .el-slider__bar {
+        background-color: #e4e7ed;
+    }
+
+    .img-selector {
+        display: flex;
+        justify-content: flex-start;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .dialog-footer button {
+        font-size: 18px;
+    }
+
+    .el-dialog__body {
+        padding: 0 20px 30px 20px;
+    }
+
+    .el-dialog__body input {
+        font-size: 18px;
+    }
+
+    .el-empty__description p {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+
+    .el-empty {
+        flex-direction: column-reverse
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .image-slot {
+        font-size: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        background: #f5f7fa;
+        color: #909399;
+    }
+</style>
+</body>
+</html>
