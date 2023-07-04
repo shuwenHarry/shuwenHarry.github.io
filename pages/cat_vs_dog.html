@@ -5,7 +5,7 @@ permalink: /cat-vs-dog/
 
 <!DOCTYPE html>
 <html lang="en">
-{% include head.html %}
+{% include default/head.liquid %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,7 @@ permalink: /cat-vs-dog/
     <link rel="stylesheet" href="https://cdn.staticfile.org/element-ui/2.15.7/theme-chalk/index.min.css"></link>
 </head>
 <body style="background: white;">
-{% include navbar.html %}
+{% include default/navbar.liquid %}
 <div id="main">
     <div id="app" class="app">
         <div style="font-size:18px; margin-left: 10px;">
@@ -89,7 +89,7 @@ permalink: /cat-vs-dog/
         </el-dialog>
     </div>
 </div>
-{% include footer.html %}
+{% include default/footer.liquid %}
 <script>
     new Vue({
         el: '#app',
